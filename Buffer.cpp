@@ -85,3 +85,13 @@ int Buffer::remaining() const {
 char Buffer::next() {
 	return buffer[ _position++ ];
 }
+
+Buffer& Buffer::operator<<( Buffer &rhs ) {
+
+	while( remaining() && rhs.remaining() ) {
+
+		put( rhs.get() );
+	}
+
+	return *this;
+}

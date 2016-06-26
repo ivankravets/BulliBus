@@ -17,16 +17,16 @@ uint8_t _c2i( char ch ) {
 	if( ch >= 'a' && ch <= 'f' ) return ch-'A';
 }
 
-void _putCrc( Buffer &buf, short crc ) {
+void _putCrc( Buffer &buf, unsigned short crc ) {
 
 	buf.put( _i2c( (uint8_t)( (crc >> 12 )&0xF ) ) );
 	buf.put( _i2c( (uint8_t)( (crc >>  8 )&0xF ) ) );
 	buf.put( _i2c( (uint8_t)( (crc >>  4 )&0xF ) ) );
 	buf.put( _i2c( (uint8_t)( (crc >>  0 )&0xF ) ) );
 }
-short _decodeCrc( const char * crc ) {
+unsigned short _decodeCrc( const char * crc ) {
 
-	short result;
+	unsigned short result;
 	result = _c2i( crc[ 0 ] );
 	result = result << 4 | _c2i( crc[ 1 ] );
 	result = result << 4 | _c2i( crc[ 2 ] );
@@ -65,6 +65,15 @@ short _decodeCrc( const char * crc ) {
 	const port_t &SER1 = _ser1;
 #endif
 
+// === BulliBus ===
+
+static void (* _cb_error)( const char *, Cargo& );
+
+void BulliBus::onError( void (*cb_error)( const char *, Cargo& ) ) {
+
+	_cb_error = cb_error;
+}
+
 // === Cargo ===
 
 Cargo::Cargo( Bulli &bus, bb_addr_t address, const char *argv ) 
@@ -86,20 +95,6 @@ template void Cargo::reply<int>( int value );
 template void Cargo::reply<long>( long value );
 template void Cargo::reply<float>( float value );
 template void Cargo::reply<double>( double value );
-
-	/*
-	int read( char * buffer, int len ) const {
-		int i;
-		int c;
-		for( i=0; i<len; i++ ) {
-			if( !avail() ) break;
-			c = Serial.read();
-			*buffer = (char)c;
-			if( c == 0 || c == '\n' || c == '\r' ) break;
-		}
-		return i;
-	}
-	*/
 
 // === Bulli ===
 Bulli::Bulli( const port_t &port ) : 
@@ -126,26 +121,27 @@ void Bulli::send( bb_addr_t addr, const char *msg, bool isreply ) {
 
 		ch = addr[ i ];
 
-		crc = crc_update( ch, crc );
+		crc = crc_update( crc, ch );
 		out.put( ch );
 	}
 
 	if( isreply ) {
 		out.put( '>' );
-		crc = crc_update( '>', crc );
+		crc = crc_update( crc, '>' );
+	} else {
+		out.put( ' ' );
+		crc = crc_update( crc, ' ' );
 	}
-
-	out.put( ' ' );
 
 	for( i=0; i<len; i++ ) {
 
 		ch = msg[ i ];
 
-		crc = crc_update( ch, crc );
+		crc = crc_update( crc, ch );
 		out.put( ch );
 	}
 
-	if( isreply ) out.put( '\n' );
+	//if( isreply ) out.put( '\n' );
 
 	out.put( '~' );
 
@@ -245,16 +241,24 @@ void Bulli::_processIn( Buffer buffer ) {
 							   calculatedCrc = 0;
 
 				for( i=0; i<4; i++ ) {
-					calculatedCrc = crc_update( addr[ i ], calculatedCrc );
+					calculatedCrc = crc_update( calculatedCrc, addr[ i ] );
 				}
-				calculatedCrc = crc_update( type, calculatedCrc );
+				calculatedCrc = crc_update( calculatedCrc, type );
 				for( p=payload; p<crc-1; p++ ) {
-					calculatedCrc = crc_update( *p, calculatedCrc );
+					calculatedCrc = crc_update( calculatedCrc, *p );
 				}
 
 				crcErr = calculatedCrc != receivedCrc;
+
+				if( crcErr ) {
+					printf( "CRC: %04x/%04x\n", calculatedCrc, receivedCrc );
+				}
 			}
 
+			if( crcErr && _cb_error ) {
+
+				_cb_error( "CRC", cargo );
+			}
 
 			// request
 			if( type == ' ' ) {
@@ -308,15 +312,17 @@ void Bulli::_tryReceive() {
 			continue;
 		}
 
-		if( ch == '\n' || ch == '\r' ) {
+		if( ch == '\r' ) ch = '\n';
+
+		if( ch == '\n' ) {
 
 			_processIn( in );
+			continue;
 		}
 
 		in.put( ch );
 	}
 }
-
 
 
 // === Driver ===
@@ -331,6 +337,15 @@ void Driver::send( bb_addr_t address, const char *message ) const {
 
 	bus.send( address, message, false );
 }
+
+void Driver::request( bb_addr_t address, const char *message, bb_callback_t cb ) {
+
+	this->callback = cb;
+	this->lastCall = address;
+
+	send( address, message );
+}
+
 
 // === Passenger ===
 

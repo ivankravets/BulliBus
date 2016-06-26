@@ -27,6 +27,8 @@ public:
 	int remaining() const;
 	char next();
 
+	Buffer& operator<<( Buffer &rhs );
+
 private:
 	char buffer[ DEFAULT_BUFFER_SIZE ];
 

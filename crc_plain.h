@@ -1,11 +1,11 @@
 
 inline
 unsigned short
-crc_update( unsigned short crc, unsigned char data)
+crc_update( unsigned short crc, char c )
 {
 	int i;
 
-	crc = crc ^ ((unsigned short)data << 8);
+	crc = crc ^ ((unsigned short)c << 8);
 	for (i=0; i<8; i++)
 	{
 		if (crc & 0x8000)

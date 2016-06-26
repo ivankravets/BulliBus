@@ -45,6 +45,8 @@ class Passenger;
 class Cargo;
 
 typedef const char * bb_addr_t;
+typedef void (*bb_callback_t)( Cargo &cargo );
+
 
 #ifdef BB_HAS_SERIAL0
 extern const port_t &SER0;
@@ -52,6 +54,13 @@ extern const port_t &SER0;
 #ifdef BB_HAS_SERIAL1
 extern const port_t &SER1;
 #endif
+
+// --- Settings ---
+class BulliBus {
+
+	public:
+		static void onError( void (*cb_error)( const char *, Cargo& ) );
+};
 
 // --- Cargo ---
 class Cargo {
@@ -76,9 +85,6 @@ class Cargo {
 };
 
 
-// --- Callback ---
-typedef void (*bb_callback_t)( Cargo &cargo );
-
 // --- Bulli ---
 class Bulli {
 
@@ -97,9 +103,11 @@ public:
 
 	void begin( int speed );
 
+	/*
 	void withTimeouts( uint32_t initial_timeout_us, uint32_t consecutive_timeout_us );
 	void withReceiveBuffer( char * buffer[], size_t size );
 	void withTransmitBuffer( char * buffer, size_t size );
+	*/
 
 	void run();
 	void delay( unsigned int ms );
@@ -130,7 +138,7 @@ class Driver {
 		Driver( Bulli &bus );
 
 		void send( bb_addr_t address, const char * message ) const;
-		void request( bb_addr_t address, const char * message, bb_callback_t callback ) const;
+		void request( bb_addr_t address, const char * message, bb_callback_t callback );
 };
 
 // --- Passenger ---

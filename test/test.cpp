@@ -226,6 +226,38 @@ void testBufferEvenMoreBorderConditions() {
 	assertEq( "too small", amount, -1 );
 }
 
+void testBufferCopy() {
+
+	Buffer b1, b2;
+
+	char out[30];
+	int amount;
+
+	b1.put( "1234" );
+	assertEq( "init b1 pos", b1.position(), 4 );
+	assertEq( "init b1 lim", b1.limit(), DEFAULT_BUFFER_SIZE );
+	assertEq( "init b1 rem", b1.remaining(), 20 );
+
+	b2.put( "ABCD" );
+	assertEq( "init b2 pos", b2.position(), 4 );
+	assertEq( "init b2 lim", b2.limit(), DEFAULT_BUFFER_SIZE );
+	assertEq( "init b2 rem", b2.remaining(), 20 );
+
+	b2.flip(); // !important
+
+	b1 << b2;
+	         
+	assertEq( "combined pos", b1.position(), 8 );
+	assertEq( "combined lim", b1.limit(), DEFAULT_BUFFER_SIZE );
+	assertEq( "combined rem", b1.remaining(), 16 );
+
+	b1.flip(); // important, too...
+
+	amount = b1.get( out, sizeof( out ) );
+	assertEq( "combined size", amount, 8 );
+	assertEqual( "combined string", "1234ABCD", out );
+}
+
 int onCargoCalled = 0;
 void onCargo( Cargo &cargo ) {
 
@@ -233,6 +265,18 @@ void onCargo( Cargo &cargo ) {
 
 	assertEqual( "received addr", "tmp1", cargo.address );
 	assertEqual( "argument", "get", cargo.argv );
+
+	cargo.reply( "23.45" );
+
+	onCargoCalled++;
+}
+
+void onReply( Cargo &cargo ) {
+
+	std::cout << "[onReply]" << cargo.address << " / " << cargo.argv;
+
+	assertEqual( "received addr", "tmp1", cargo.address );
+	assertEqual( "argument", "23.45", cargo.argv );
 
 	onCargoCalled++;
 }
@@ -242,45 +286,66 @@ void testBulli() {
 	char text[30];
 	int amount;
 
-	Buffer buffer;
-	PortBuffer port( buffer );
+	Buffer in, out;
+	PortBuffer port( in, out );
 
 	Bulli bus( port );
 	Driver drv( bus );
 
 	bus.begin( 9600 );
 
-	drv.send( "tmp1", "get" );
+	// === request ===
+	drv.request( "tmp1", "get", onReply );
 
-	buffer.flip();
+	out.flip();
 
-	amount = buffer.get( text, sizeof( text ) );
+	amount = out.get( text, sizeof( text ) );
 
-	assertEq( "amount of chars sent", amount, 14 );
-	assertEqual( "sent text", text, "tmp1 get~7400\n" );
+	assertEqual( "sent text", "tmp1 get~E62B\n", text );
 
-	buffer.reset(); // Note that we can now read it again!
+	out.reset(); // Note that we can now read it again!
 
+	// === get response ===
 	Passenger passenger( bus, "tmp1" );
 	passenger.onCargo( onCargo );
 
-	bus.run();
+	in << out; // copy out to in
 
+	in.flip();
+	out.clear();
+
+	bus.run();
 	assertEq( "called", onCargoCalled, 1 );
 
+	out.flip();
+	amount = out.get( text, sizeof( text ) );
+	std::cout << amount << "/" << text;
+	assertEqual( "replied text", "tmp1>23.45~3500", text );
+
+	bus.run();
+
+	assertEq( "called", onCargoCalled, 2 );
 }
 
 unsigned long millis(){ return 2; }
 
 #define RUN( what ) std::cout << #what ": "; (what)(); std::cout << "OK\n";
 
+void on_error( const char * msg, Cargo &cargo ) {
+
+	std::cout << ">>>ERROR: " << msg << " in '" << cargo.address << ": " << cargo.argv << "'\n";
+}
+
 int main( int argc, const char *argv[] ) {
+
+	BulliBus::onError( on_error );
 
 	RUN( testBufferCorrectUsage );
 	RUN( testBufferMoreCorrectUsage );
 	RUN( testBufferBorderConditions );
 	RUN( testBufferMoreBorderConditions );
 	RUN( testBufferEvenMoreBorderConditions );
+	RUN( testBufferCopy );
 
 	RUN( testBulli );
 	

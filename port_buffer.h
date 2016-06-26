@@ -1,24 +1,24 @@
 class PortBuffer : public port_t {
 
 public:
-	PortBuffer( Buffer &buffer ) : buffer( buffer ) {}
+	PortBuffer( Buffer &in, Buffer &out ) : in( in ), out( out ) {}
 
 	void init( int baud ) const {
 	}
 	bool clearToSend() const {
-		return buffer.remaining() > 0;
+		return out.remaining() > 0;
 	}
 	void send( char ch ) const {
-		buffer.put( ch );
+		out.put( ch );
 	}
 	bool dataAvailable() const {
-		return buffer.remaining() > 0;
+		return in.remaining() > 0;
 	}
 	short receive() const {
-		return buffer.get();
+		return in.get();
 	}
 
 private:
-	Buffer &buffer;
+	Buffer &in, &out;
 
 };
