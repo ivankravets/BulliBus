@@ -1,33 +1,153 @@
 #ifndef BULLI_BUS_H
 #define BULLI_BUS_H
 
-#include "Arduino"
+#include "Buffer.h"
 
-class Message {
-
-	uint32_t address;
-	int argc;
-	const char * argv[];
+class port_t {
+	friend class Bulli;
+	virtual void init( int baud ) const = 0;
+	virtual bool clearToSend() const = 0;
+	virtual void send( char ch ) const = 0;
+	virtual bool dataAvailable() const = 0;
+	virtual short receive() const = 0;
 };
 
-typedef void (*callback)( Message *message );
+#if defined( ARDUINO_ARCH_AVR )
+	#pragma message "ARCH_AVR"
+	#include "Arduino.h"
+	#define BB_HAS_SERIAL0
+	#define BB_CRC_AVR
+#elif defined( ARDUINO_ARCH_ESP8266 )
+	#pragma message "ARCH_ESP8266"
+	#include "Arduino.h"
+	#define BB_HAS_SERIAL0
+	#define BB_HAS_SERIAL1
+	#define BB_CRC_PLAIN
+#elif defined( ENERGIA )
+	#pragma message "ENERGIA"
+	#include "Arduino.h"
+	#define BB_HAS_SERIAL0
+	#define BB_CRC_PLAIN
+#else
+	#pragma message "ARCH_x86"
+	#include <stdio.h>
+	#include <stdint.h>
+	#include "ArduStub.h"
+	#define BB_CRC_PLAIN
+#endif
 
-class BulliBus {
+#define ADDR( c ) \
+	((c)[0]<<24 | (c)[1]<<16 | (c)[2]<<8 | (c)[3])
+
+class Bulli;
+class Driver;
+class Passenger;
+class Cargo;
+
+typedef const char * bb_addr_t;
+
+#ifdef BB_HAS_SERIAL0
+extern const port_t &SER0;
+#endif
+#ifdef BB_HAS_SERIAL1
+extern const port_t &SER1;
+#endif
+
+// --- Cargo ---
+class Cargo {
+
+	friend class Bulli;
+
+	private:
+		Bulli &bus;
+
+		Cargo( Bulli &bus, bb_addr_t address, const char *argv );
 
 	public:
-		void init( int port );
-		void signal( uint32_t address, const char * message );
-		void request( uint32_t address, const char * message );
+		bb_addr_t address;
+		const char * argv;
+
+		void reply( const char * msg );
+		void reply( String msg );
+
+		template<typename T>
+		void reply( T value );
 
 };
 
-class BulliTrailer {
+
+// --- Callback ---
+typedef void (*bb_callback_t)( Cargo &cargo );
+
+// --- Bulli ---
+class Bulli {
+
+	friend class Cargo;
+	friend class Driver;
+	friend class Passenger;
+
+private:
+	const port_t &port;
+	const Driver *driver;
+	Passenger *passenger;
+
+public:
+
+	Bulli( const port_t &port );
+
+	void begin( int speed );
+
+	void withTimeouts( uint32_t initial_timeout_us, uint32_t consecutive_timeout_us );
+	void withReceiveBuffer( char * buffer[], size_t size );
+	void withTransmitBuffer( char * buffer, size_t size );
+
+	void run();
+	void delay( unsigned int ms );
+
+private:
+
+	void _tryReceive();
+	void _trySend();
+	void _processIn( Buffer buffer );
+	void send( bb_addr_t addr, const char *msg, bool isreply );
+
+	Buffer in;
+	Buffer out;
+};
+
+
+// --- Driver ---
+class Driver {
+
+	friend class Bulli;
+
+	private:
+		Bulli &bus;
+		bb_callback_t callback;
+		bb_addr_t lastCall;
 
 	public:
-		void init( int port, uint32_t address );
-		void onSignal( callback cb );
-		void onRequest( callback cb );
-		void reply( const char * message );
-}
+		Driver( Bulli &bus );
 
+		void send( bb_addr_t address, const char * message ) const;
+		void request( bb_addr_t address, const char * message, bb_callback_t callback ) const;
+};
+
+// --- Passenger ---
+class Passenger {
+
+	friend class Bulli;
+
+	private:
+		Bulli &bus;
+		Passenger *next;
+		bb_callback_t callback;
+		bb_addr_t address;
+
+	public:
+
+		Passenger( Bulli &bus, bb_addr_t address );
+
+		void onCargo( bb_callback_t cb );
+};
 #endif
