@@ -1,5 +1,7 @@
 # BulliBus
 
+=== NOT READY, YET! ===
+
 Simple serial communication library for Arduino and Friends
 
 "It seems that perfection is attained, not when there is nothing more to add,
