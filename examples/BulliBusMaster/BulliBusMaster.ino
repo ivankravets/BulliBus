@@ -7,32 +7,32 @@ Driver driver( bus );
 
 void onTmp( Cargo &cargo ) {
 
-	if( (cargo.addr & 0x000f) == '1' ) {
-
-		Serial.print( "Got temp: " );
-		Serial.println( cargo.argv[ 0 ] );
-	}
+	Serial.print( "Got temp: " );
+	Serial.println( cargo.argv );
 }
 
-setup() {
+void setup() {
 
-	Serial.begin( 115200 );
-	Serial.print( "Hello World\n" );
-
-	bus.begin( 115200 );
+	bus.begin( 19200 );
 
 	pinMode( LED, OUTPUT );
 
 }
 
-loop() {
+void blink() {
 
-	/*
+	static bool on;
+
+	on = !on;
+
+	digitalWrite( LED, on );
+}
+
+void loop() {
+
 	driver.request( "tmp1", "get", onTmp );
 
-	bus.delay( 100 );
-	*/
-	delay( 100 );
+	bus.delay( 250 );
 
-	digitalWrite( LED, !digitalRead( LED ) );
+	blink();
 }
