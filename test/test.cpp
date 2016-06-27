@@ -283,6 +283,8 @@ void onReply( Cargo &cargo ) {
 
 void testBulli() {
 
+	onCargoCalled = 0;
+
 	char text[30];
 	int amount;
 
@@ -333,7 +335,34 @@ void testBulli() {
 	assertEq( "called", onCargoCalled, 2 );
 }
 
-unsigned long millis(){ return 2; }
+void testMoreBulli() {
+
+	onCargoCalled = 0;
+
+	char text[30];
+	int amount;
+
+	Buffer in, out;
+	PortBuffer port( in, out );
+
+	Bulli bus( port );
+	Driver drv( bus );
+	Passenger passenger( bus, "tmp1" );
+
+	drv.send( "tmp1", "get" );
+
+	out.flip();
+	in << out;
+	in.flip();
+	out.clear();
+
+	bus.run();
+
+	assertEq( "got called", onCargoCalled, 1 );
+}
+
+unsigned long _millis = 1;
+unsigned long millis(){ return _millis; }
 
 #define RUN( what ) std::cout << #what ": "; (what)(); std::cout << "OK\n";
 
@@ -354,6 +383,7 @@ int main( int argc, const char *argv[] ) {
 	RUN( testBufferCopy );
 
 	RUN( testBulli );
+	//RUN( testMoreBulli );
 	
 	std::cout << "DONE\n";
 }

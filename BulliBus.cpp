@@ -3,6 +3,7 @@
 #include <string.h>
 
 #define DEFAULT_BUFFER_SIZE 24
+#define DEFAULT_TIMEOUT 20
 
 #define BB_WILDCARD '?'
 
@@ -121,7 +122,7 @@ Bulli::Bulli( const port_t &port ) :
 	this->driver = NULL;
 }
 
-void Bulli::begin( int baud ) {
+void Bulli::begin( uint32_t baud ) {
 	port.init( baud );
 }
 
@@ -174,9 +175,9 @@ void Bulli::run() {
 	_tryReceive();
 }
 
-void Bulli::delay( unsigned int ms ) {
+void Bulli::delay( uint32_t ms ) {
 
-	for( unsigned long end = millis() + ms; end < millis(); ) {
+	for( uint32_t end = millis() + ms; end > millis(); ) {
 
 		run();
 	}
@@ -234,7 +235,7 @@ void Bulli::_processIn( Buffer buffer ) {
 
 	buffer.clear();
 	// from this point we can start receiving again
-
+	
 	if( len > 5 ) {
 
 		char type = buf[ 4 ];
@@ -290,15 +291,13 @@ void Bulli::_processIn( Buffer buffer ) {
 	
 			// response
 			} else if( type == '>' ) { //reponse
+
+				if( driver && _matchAddress( driver->lastCall, addr ) ) {
 				
-				if( driver && driver->lastCall && strncmp( driver->lastCall, addr, 4 ) == 0 ) {
+					if( driver->lastCall ) {
 
-					if( crcErr ) {
-						cargo.reply( "CRC ERR" );
-						return;
+						driver->callback( cargo );
 					}
-
-					driver->callback( cargo );
 				}
 
 			}
@@ -316,7 +315,7 @@ void Bulli::_tryReceive() {
 
 	while( port.dataAvailable() && in.remaining() > 0 ) {
 
-		int ch = port.receive();
+		short_t ch = port.receive();
 
 		if( ch == '\r' ) ch = '\n'; // treat \r and \n the same
 
@@ -344,6 +343,7 @@ Driver::Driver( Bulli &bus )
  : bus( bus ) {
 
 	bus.driver = this;
+	lastTime = 0;
 }
 
 void Driver::send( bb_addr_t address, const char *message ) const {
@@ -356,7 +356,15 @@ void Driver::request( bb_addr_t address, const char *message, bb_callback_t cb )
 	this->callback = cb;
 	this->lastCall = address;
 
+	unsigned long now = millis(),
+	              timeout = now-lastTime;
+
+	if( lastTime > 0 && timeout < DEFAULT_TIMEOUT )
+			bus.delay( DEFAULT_TIMEOUT - timeout );
+
 	send( address, message );
+
+	lastTime = millis();
 }
 
 

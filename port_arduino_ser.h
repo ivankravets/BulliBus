@@ -1,6 +1,6 @@
 class __SerNo : public port_t {
 	
-	void init( int baud ) const {
+	void init( uint32_t baud ) const {
 		__TheSerial.begin( baud );
 	}
 	bool clearToSend() const {
@@ -12,7 +12,7 @@ class __SerNo : public port_t {
 	bool dataAvailable() const {
 		__TheSerial.available();
 	}
-	short receive() const {
-		return (short)__TheSerial.read();
+	short_t receive() const {
+		return (short_t)__TheSerial.read();
 	}
 };

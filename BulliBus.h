@@ -3,15 +3,6 @@
 
 #include "Buffer.h"
 
-class port_t {
-	friend class Bulli;
-	virtual void init( int baud ) const = 0;
-	virtual bool clearToSend() const = 0;
-	virtual void send( char ch ) const = 0;
-	virtual bool dataAvailable() const = 0;
-	virtual short receive() const = 0;
-};
-
 #if defined( ARDUINO_ARCH_AVR )
 	#pragma message "ARCH_AVR"
 	#include "Arduino.h"
@@ -43,9 +34,11 @@ class port_t {
 #ifdef BB_8bit
 	typedef char char_t;
 	typedef unsigned short ushort_t;
+	typedef signed short short_t;
 #else
 	typedef int char_t;
 	typedef unsigned int ushort_t;
+	typedef signed int short_t;
 #endif
 
 #define ADDR( c ) \
@@ -58,6 +51,15 @@ class Cargo;
 
 typedef const char * bb_addr_t;
 typedef void (*bb_callback_t)( Cargo &cargo );
+
+class port_t {
+	friend class Bulli;
+	virtual void init( uint32_t baud ) const = 0;
+	virtual bool clearToSend() const = 0;
+	virtual void send( char ch ) const = 0;
+	virtual bool dataAvailable() const = 0;
+	virtual short_t receive() const = 0;
+};
 
 
 #ifdef BB_HAS_SERIAL0
@@ -113,7 +115,7 @@ public:
 
 	Bulli( const port_t &port );
 
-	void begin( int speed );
+	void begin( uint32_t speed );
 
 	/*
 	void withTimeouts( uint32_t initial_timeout_us, uint32_t consecutive_timeout_us );
@@ -122,7 +124,7 @@ public:
 	*/
 
 	void run();
-	void delay( unsigned int ms );
+	void delay( uint32_t ms );
 
 private:
 
@@ -145,6 +147,7 @@ class Driver {
 		Bulli &bus;
 		bb_callback_t callback;
 		bb_addr_t lastCall;
+		uint32_t lastTime;
 
 	public:
 		Driver( Bulli &bus );
@@ -163,6 +166,7 @@ class Passenger {
 		Passenger *next;
 		bb_callback_t callback;
 		bb_addr_t address;
+		uint32_t lastTime;
 
 	public:
 

@@ -1,6 +1,8 @@
 #include "BulliBus.h"
 
-Bulli bus( SER1 );
+#define LED 13
+
+Bulli bus( SER0 );
 Driver driver( bus );
 
 void onTmp( Cargo &cargo ) {
@@ -15,14 +17,22 @@ void onTmp( Cargo &cargo ) {
 setup() {
 
 	Serial.begin( 115200 );
+	Serial.print( "Hello World\n" );
 
-	bus.begin( 9600 );
+	bus.begin( 115200 );
+
+	pinMode( LED, OUTPUT );
 
 }
 
 loop() {
 
+	/*
 	driver.request( "tmp1", "get", onTmp );
 
 	bus.delay( 100 );
+	*/
+	delay( 100 );
+
+	digitalWrite( LED, !digitalRead( LED ) );
 }
