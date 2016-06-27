@@ -2,39 +2,54 @@
 
 #include <string.h>
 
-#include <iostream>
-
 #define DEFAULT_BUFFER_SIZE 24
 
+#define BB_WILDCARD '?'
+
 inline
-char _i2c( uint8_t val ) {
+char_t _i2c( char_t val ) {
 	if( val <= 9 ) return '0' + val;
 	else return 'A' + val-0xA;
 }
 inline
-uint8_t _c2i( char ch ) {
+static char_t _c2i( char_t ch ) {
 
 	if( ch >= '0' && ch <= '9' ) return ch-'0';
 	if( ch >= 'A' && ch <= 'F' ) return ch-'A'+10;
 	if( ch >= 'a' && ch <= 'f' ) return ch-'a'+10;
 	return 0;
 }
-void _putCrc( Buffer &buf, unsigned short crc ) {
+static void _putCrc( Buffer &buf, ushort_t crc ) {
 
-	buf.put( _i2c( (uint8_t)( (crc >> 12 )&0xF ) ) );
-	buf.put( _i2c( (uint8_t)( (crc >>  8 )&0xF ) ) );
-	buf.put( _i2c( (uint8_t)( (crc >>  4 )&0xF ) ) );
-	buf.put( _i2c( (uint8_t)( (crc >>  0 )&0xF ) ) );
+	buf.put( _i2c( (char)( (crc >> 12 )&0xF ) ) );
+	buf.put( _i2c( (char)( (crc >>  8 )&0xF ) ) );
+	buf.put( _i2c( (char)( (crc >>  4 )&0xF ) ) );
+	buf.put( _i2c( (char)( (crc >>  0 )&0xF ) ) );
 }
-unsigned short _decodeCrc( const char * crc ) {
+static ushort_t _decodeCrc( const char * crc ) {
 
-	unsigned short result;
+	ushort_t result;
 	result = _c2i( crc[ 0 ] );
 	result = (result << 4) | _c2i( crc[ 1 ] );
 	result = (result << 4) | _c2i( crc[ 2 ] );
 	result = (result << 4) | _c2i( crc[ 3 ] );
 
 	return result;
+}
+
+static bool _matchAddress( const char * mine, const char * msg ) {
+
+	register char_t i, m1, m2;
+
+	for( i=0; i<4; i++ ) {
+
+		m1 = mine[ i ];
+		if( m1 == BB_WILDCARD ) continue;
+		m2 = msg[ i ];
+		if( m2 == BB_WILDCARD ) continue;
+		if( m1 != m2 ) return false;
+	}
+	return true;
 }
 
 // === CRC ===
@@ -112,10 +127,10 @@ void Bulli::begin( int baud ) {
 
 void Bulli::send( bb_addr_t addr, const char *msg, bool isreply ) {
 
-	int len = strlen( msg ), 
-	    i;
-	char ch;
-	unsigned short crc = crc_init();
+	int len = strlen( msg );
+	register char_t i;
+	register char_t ch;
+	register ushort_t crc = crc_init();
 
 	out.clear();
 
@@ -234,11 +249,11 @@ void Bulli::_processIn( Buffer buffer ) {
 
 			if( crc != NULL ) {
 
-				int i;
-				const char *p;
+				char_t i;
+				register const char *p;
 
-				unsigned short receivedCrc = _decodeCrc( crc ),
-							   calculatedCrc = crc_init();
+				ushort_t receivedCrc = _decodeCrc( crc ),
+				         calculatedCrc = crc_init();
 
 				for( i=0; i<4; i++ ) {
 					calculatedCrc = crc_update( calculatedCrc, addr[ i ] );
@@ -261,7 +276,7 @@ void Bulli::_processIn( Buffer buffer ) {
 
 				for( Passenger *p=passenger; p != NULL; p = p->next ) {
 
-					if( strncmp( p->address, addr, 4 ) == 0 ) {
+					if( _matchAddress( p->address, addr ) ) {
 
 						if( crcErr ) {
 							cargo.reply( "CRC ERR" );

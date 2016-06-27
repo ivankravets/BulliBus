@@ -17,23 +17,35 @@ class port_t {
 	#include "Arduino.h"
 	#define BB_HAS_SERIAL0
 	#define BB_CRC_AVR
+	#define BB_8bit
 #elif defined( ARDUINO_ARCH_ESP8266 )
 	#pragma message "ARCH_ESP8266"
 	#include "Arduino.h"
 	#define BB_HAS_SERIAL0
 	#define BB_HAS_SERIAL1
 	#define BB_CRC_PLAIN
+	#define BB_32bit
 #elif defined( ENERGIA )
 	#pragma message "ENERGIA"
 	#include "Arduino.h"
 	#define BB_HAS_SERIAL0
 	#define BB_CRC_PLAIN
+	#define BB_32bit
 #else
 	#pragma message "ARCH_x86"
 	#include <stdio.h>
 	#include <stdint.h>
 	#include "ArduStub.h"
 	#define BB_CRC_PLAIN
+	#define BB_32bit
+#endif
+
+#ifdef BB_8bit
+	typedef char char_t;
+	typedef unsigned short ushort_t;
+#else
+	typedef int char_t;
+	typedef unsigned int ushort_t;
 #endif
 
 #define ADDR( c ) \

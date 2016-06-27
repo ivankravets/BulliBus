@@ -12,13 +12,15 @@ The purpose of this project is to provide an extremely simple to use but
 nevertheless powerfull serial bus communiction library for Arduino and
 friends.
 
-BulliBus aims to satisfy 95% of normal bus communication needs while staying
-userfriendly.
+BulliBus aims to satisfy 95% of normal hobbyist's bus communication needs
+while staying userfriendly.
 
-BulliBus uses only plain old printable ascii characters to communicate.
+BulliBus uses only plain old printable ASCII characters to communicate.
 BulliBus Master (just called Bulli) can be easily simulated using an ascii
 terminal on your PC using some cheapo rs485 adaptor.
 
+BulliBus can theoretically talk to millions of clients but for all practical
+purposes the amount of client will be around 10.
 
 BulliBus communication looks like:
 
@@ -33,7 +35,6 @@ master> mot7 stop
 master> mot7 status
 mot7> halt
 
-
 BulliBus Messages can be accompanied by a crc16 checksum in order to ensure
 message integrity. Automated BulliBus clients do use this. But as humans we
 are bad at calculating checksums in our head so BulliBus allowes us to leave
@@ -45,9 +46,8 @@ master> tem1 get~CAFE
 
 tem1> 23.75~F00B
 
-BulliBus only supports a subset of ascii. And by ASCII we do mean 0x00-0x7F.
-So no latin-x or windows-y extension.
-
+BulliBus only supports ascii characters 0x20..0x7E. All others are dropped
+and regarded as bus reset. So no latin-x or windows-y extension.
 
 More formally:
 
@@ -57,22 +57,34 @@ Request: ADDRESS<SP>TEXT[~RC16]<CR/LF>
 Response: ADDRESS><SP>TEXT[~RC16]<CR/LF>
 
 with:
-    ADDRESS: 4 characters ascii in range A..Z, a..z, 0..9, _, -. Case *does* matter.
-    TEXT: Any printable ascii text excluding <NUL>, <CR> and <LF>, but including <SP>
+    ADDRESS: 4 characters ascii in range except <SP><CR/LF><NUL>
+    TEXT: Any printable ascii text excluding <NUL>, <CR/LF>, but including <SP>
     <NUL>: Null byte: 0x00
     <SP>: Space character: 0x20
     <CR>: Carriage return: 0x0D
     <LF>: Linefeed: 0x0A
-    <CR/LF>: **ANY** combination of <CR> and <LF>: <CR>, <LF>, <CR><LF> *and* <LF><CR>
-         (this is in order to simply use terminals and libraries and don't care what
-          their makers thought was the *right* character to use.
+    <CR/LF>: **ANY** combination of <CR> and <LF>: <CR>, <LF>, <CR><LF>
+	     *and even* <LF><CR> (this is in order to simply use terminals and
+		 libraries and don't care what their makers thought was the *right*
+		 character to use.
     [~RC16]:
-          Tilde character plus CRC16 hex encoded over the complete address and text excluding starting <SP> and excluding ending <CR/LF> optional when sending to devices. mandatory for devices to return.
+          Tilde character plus CRC16 hex encoded over the complete address
+		  and text excluding starting <SP> and excluding ending <CR/LF> optional
+		  when sending to devices. mandatory for devices to return.
           If supplied devices *must* check it and return an error if not matches
 
 For broadcasts masking may be used:
-    questionmarks can replay *any* address character and mean: can be any character. so
-        1??4 does mean any device in range 1004 .. 1zz4
+    questionmarks can replace *any* address character and mean: can be any character. so
+        tmp? does mean any device in ranges tmp0..tmp9, tmpa..tmpz, tmpA..tmpZ, ... and so on.
+
+BulliBus's code model solely depends on callbacks.
+
+An simple BulliBus client (Passenger) looks like this:
+
+
+
+
+
 
 So this protocoll has some drawbacks:
 * It's not fast (It has hugh delays, ascii is only 0..0x7f)
