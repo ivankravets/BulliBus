@@ -24,16 +24,16 @@ purposes the amount of client will be around 10.
 
 BulliBus communication looks like:
 
-master> tem1 get
-tem1> 23.75
+	master> tem1 get
+	tem1> 23.75
 
-master> mot7 left 50
-master> mot7 status
-mot7> left 50
+	master> mot7 left 50
+	master> mot7 status
+	mot7> left 50
 
-master> mot7 stop
-master> mot7 status
-mot7> halt
+	master> mot7 stop
+	master> mot7 status
+	mot7> halt
 
 BulliBus Messages can be accompanied by a crc16 checksum in order to ensure
 message integrity. Automated BulliBus clients do use this. But as humans we
@@ -42,9 +42,9 @@ them out.
 
 Including checksums BulliBus Messages look like:
 
-master> tem1 get~CAFE
+	master> tem1 get~CAFE
 
-tem1> 23.75~F00B
+	tem1> 23.75~F00B
 
 BulliBus only supports ascii characters 0x20..0x7E. All others are dropped
 and regarded as bus reset. So no latin-x or windows-y extension.
@@ -82,30 +82,26 @@ BulliBus's code model solely depends on callbacks.
 An simple BulliBus client (Passenger) looks like this:
 
 
-
-
-
-
 So this protocoll has some drawbacks:
-* It's not fast (It has hugh delays, ascii is only 0..0x7f)
-* It only transports text which most probably needs parsing
-* It doesn't make guarantees on throughput at all.
-* NO device discovery of any kind (at leat not now)
-* NO two-way broadcasts. (But one-way)
+ * It's not fast (It has hugh delays, ascii is only 0..0x7f)
+ * It only transports text which most probably needs parsing
+ * It doesn't make guarantees on throughput at all.
+ * NO device discovery of any kind (at leat not now)
+ * NO two-way broadcasts. (But one-way)
 
 But it has some major advantages, too:
-* It just works
-* It can be implemented on nearly any device as long as it has a serial interface
-* It is bus capable and avoids collisions
-* It is dead simple. You can even communicate with your clients using just a simple terminal
-* It can be implemented in just a few LOCs
+ * It just works
+ * It can be implemented on nearly any device as long as it has a serial interface
+ * It is bus capable and avoids collisions
+ * It is dead simple. You can even communicate with your clients using just a simple terminal
+ * It can be implemented in just a few LOCs
 
 ***Don't use this* if you:***
-* Want to send much data
-* Have realtime needs.
-* Don't like text protocols
+ * Want to send much data
+ * Have realtime needs.
+ * Don't like text protocols
 
 But use it if you:
-* Just want to send messages between a few devices
-* Want to be able to read what your devices are talking
-* Are fed up searching for a bus protocol which runs on all your devices
+ * Just want to send messages between a few devices
+ * Want to be able to read what your devices are talking
+ * Are fed up searching for a bus protocol which runs on all your devices
