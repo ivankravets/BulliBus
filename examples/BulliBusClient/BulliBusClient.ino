@@ -1,6 +1,7 @@
 #include "BulliBus.h"
 
-#define LED 13
+#define LED 13 // Mini Pro
+//#define LED 2  // ESP12e
 
 
 Bulli bus( SER0 );
@@ -10,6 +11,11 @@ Passenger sensor( bus, "tmp1" );
 volatile float temp = 12.34;
 
 void handleCargo( Cargo &cargo ) {
+
+	static bool on;
+	on = !on;
+
+	digitalWrite( LED, on );
 
 	cargo.reply( temp );
 }
@@ -24,16 +30,7 @@ void setup() {
 	sensor.onCargo( handleCargo );
 }
 
-void blink() {
-
-	static bool on;
-
-	on = !on;
-
-	digitalWrite( LED, on );
-}
-
-void genTemp() {
+void loop() {
 
 	cli(); // protect against interrupt between writing value
 
@@ -42,13 +39,5 @@ void genTemp() {
 
 	sei();
 
-}
-
-void loop() {
-
-	genTemp();
-
-	bus.delay( 250 );
-
-	blink();
+	bus.delay( 250 ); // or some other arbitrary number
 }

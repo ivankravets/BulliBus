@@ -70,6 +70,10 @@ static bool _matchAddress( const char * mine, const char * msg ) {
 
 	const Ser0 _ser0;
 	const port_t &SER0 = _ser0;
+
+	#undef __TheSerial
+	#undef __SerNo
+
 #endif
 
 #ifdef BB_HAS_SERIAL1
@@ -81,6 +85,9 @@ static bool _matchAddress( const char * mine, const char * msg ) {
 
 	const Ser1 _ser1;
 	const port_t &SER1 = _ser1;
+
+	#undef __TheSerial
+	#undef __SerNo
 #endif
 
 // === BulliBus ===
