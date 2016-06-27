@@ -1,6 +1,13 @@
 
 inline
 unsigned short
+crc_init()
+{
+	return 0;
+}
+
+inline
+unsigned short
 crc_update( unsigned short crc, char c )
 {
 	int i;

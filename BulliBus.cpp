@@ -6,17 +6,19 @@
 
 #define DEFAULT_BUFFER_SIZE 24
 
+inline
 char _i2c( uint8_t val ) {
 	if( val <= 9 ) return '0' + val;
 	else return 'A' + val-0xA;
 }
+inline
 uint8_t _c2i( char ch ) {
 
 	if( ch >= '0' && ch <= '9' ) return ch-'0';
-	if( ch >= 'A' && ch <= 'F' ) return ch-'A';
-	if( ch >= 'a' && ch <= 'f' ) return ch-'A';
+	if( ch >= 'A' && ch <= 'F' ) return ch-'A'+10;
+	if( ch >= 'a' && ch <= 'f' ) return ch-'a'+10;
+	return 0;
 }
-
 void _putCrc( Buffer &buf, unsigned short crc ) {
 
 	buf.put( _i2c( (uint8_t)( (crc >> 12 )&0xF ) ) );
@@ -28,9 +30,9 @@ unsigned short _decodeCrc( const char * crc ) {
 
 	unsigned short result;
 	result = _c2i( crc[ 0 ] );
-	result = result << 4 | _c2i( crc[ 1 ] );
-	result = result << 4 | _c2i( crc[ 2 ] );
-	result = result << 4 | _c2i( crc[ 3 ] );
+	result = (result << 4) | _c2i( crc[ 1 ] );
+	result = (result << 4) | _c2i( crc[ 2 ] );
+	result = (result << 4) | _c2i( crc[ 3 ] );
 
 	return result;
 }
@@ -113,7 +115,7 @@ void Bulli::send( bb_addr_t addr, const char *msg, bool isreply ) {
 	int len = strlen( msg ), 
 	    i;
 	char ch;
-	unsigned short crc = 0;
+	unsigned short crc = crc_init();
 
 	out.clear();
 
@@ -140,8 +142,6 @@ void Bulli::send( bb_addr_t addr, const char *msg, bool isreply ) {
 		crc = crc_update( crc, ch );
 		out.put( ch );
 	}
-
-	//if( isreply ) out.put( '\n' );
 
 	out.put( '~' );
 
@@ -238,7 +238,7 @@ void Bulli::_processIn( Buffer buffer ) {
 				const char *p;
 
 				unsigned short receivedCrc = _decodeCrc( crc ),
-							   calculatedCrc = 0;
+							   calculatedCrc = crc_init();
 
 				for( i=0; i<4; i++ ) {
 					calculatedCrc = crc_update( calculatedCrc, addr[ i ] );
@@ -249,10 +249,6 @@ void Bulli::_processIn( Buffer buffer ) {
 				}
 
 				crcErr = calculatedCrc != receivedCrc;
-
-				if( crcErr ) {
-					printf( "CRC: %04x/%04x\n", calculatedCrc, receivedCrc );
-				}
 			}
 
 			if( crcErr && _cb_error ) {
@@ -307,16 +303,18 @@ void Bulli::_tryReceive() {
 
 		int ch = port.receive();
 
-		if( ch > 126 ) {
-			in.reset();
-			continue;
-		}
-
-		if( ch == '\r' ) ch = '\n';
+		if( ch == '\r' ) ch = '\n'; // treat \r and \n the same
 
 		if( ch == '\n' ) {
 
 			_processIn( in );
+			in.clear();
+			continue;
+		}
+
+		if( (ch > 0x7E) || (ch < 0x20) ) { // every unknown character resets
+			printf( "RESET" );
+			in.clear();
 			continue;
 		}
 

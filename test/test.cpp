@@ -11,7 +11,7 @@
 bool _assertEq( const char * msg, int is, int exp, int line  ) {
 
 	if( is != exp ) {
-		std::cerr << "ERR: \"" << msg << "\"(" << line << ") -- is: " << is << " exp: " << exp << "\n";
+		std::cerr << "WRONG: \"" << msg << "\"(" << line << ") -- is: " << is << " exp: " << exp << "\n";
 		return false;
 	} else {
 		return true;
@@ -20,7 +20,7 @@ bool _assertEq( const char * msg, int is, int exp, int line  ) {
 bool _assertEqual( const char * msg, const char *exp, const char *is, int line ) {
 
 	if( strcmp( exp, is ) != 0 ) {
-		std::cerr << "ERR: \"" << msg << "\"(" << line << ") -- is: " << is << " exp: " << exp << "\n";
+		std::cerr << "WRONG: \"" << msg << "\"(" << line << ") -- is: " << is << " exp: " << exp << "\n";
 		return false;
 	} else {
 		return true;
@@ -261,7 +261,7 @@ void testBufferCopy() {
 int onCargoCalled = 0;
 void onCargo( Cargo &cargo ) {
 
-	std::cout << "[onCargo]" << cargo.address << " / " << cargo.argv;
+	//std::cout << "[onCargo]" << cargo.address << " / " << cargo.argv;
 
 	assertEqual( "received addr", "tmp1", cargo.address );
 	assertEqual( "argument", "get", cargo.argv );
@@ -273,7 +273,7 @@ void onCargo( Cargo &cargo ) {
 
 void onReply( Cargo &cargo ) {
 
-	std::cout << "[onReply]" << cargo.address << " / " << cargo.argv;
+	//std::cout << "[onReply]" << cargo.address << " / " << cargo.argv;
 
 	assertEqual( "received addr", "tmp1", cargo.address );
 	assertEqual( "argument", "23.45", cargo.argv );
@@ -319,8 +319,14 @@ void testBulli() {
 
 	out.flip();
 	amount = out.get( text, sizeof( text ) );
-	std::cout << amount << "/" << text;
-	assertEqual( "replied text", "tmp1>23.45~3500", text );
+	assertEqual( "replied text", "tmp1>23.45~E755\n", text );
+
+	in.clear();
+	out.reset();
+	in << out;
+	in.flip();
+
+	assertEq( "correct length", in.remaining(), amount );
 
 	bus.run();
 
