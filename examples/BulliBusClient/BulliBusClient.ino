@@ -1,5 +1,9 @@
 #include "BulliBus.h"
 
+//   CC  L   I  EEE  N NN  TTT
+//  C    L   I  EE   NNNN   T
+//   CC  LLL I  EEE  NN N   T
+
 #define LED 13 // Mini Pro
 //#define LED 2  // ESP12e
 

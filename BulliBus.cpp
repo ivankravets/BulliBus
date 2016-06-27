@@ -304,6 +304,7 @@ void Bulli::_processIn( Buffer buffer ) {
 					if( driver->lastCall ) {
 
 						driver->callback( cargo );
+						driver->ack();
 					}
 				}
 
@@ -315,7 +316,6 @@ void Bulli::_processIn( Buffer buffer ) {
 	} else {
 		//just ignore
 	}
-
 }
 
 void Bulli::_tryReceive() {
@@ -360,18 +360,37 @@ void Driver::send( bb_addr_t address, const char *message ) const {
 
 void Driver::request( bb_addr_t address, const char *message, bb_callback_t cb ) {
 
-	this->callback = cb;
-	this->lastCall = address;
-
 	unsigned long now = millis(),
 	              timeout = now-lastTime;
+	long delay = DEFAULT_TIMEOUT - timeout;
 
-	if( lastTime > 0 && timeout < DEFAULT_TIMEOUT )
-			bus.delay( DEFAULT_TIMEOUT - timeout );
+	Serial.print( "last: " );
+	Serial.print( lastTime );
+	Serial.print( ", now: " );
+	Serial.print( now );
+	Serial.print( ", timeout: " );
+	Serial.print( timeout );
+	Serial.print( ", delay: " );
+	Serial.print( delay );
+	Serial.println();
+
+	while( lastTime > 0 && (DEFAULT_TIMEOUT-(millis()-lastTime)) > 0 )
+			bus.run();
+	/*
+	if( lastTime > 0 && delay > 0 )
+			bus.delay( delay );
+			*/
+
+	// after timeout reached
+	this->callback = cb;
+	this->lastCall = address;
 
 	send( address, message );
 
 	lastTime = millis();
+}
+void Driver::ack() {
+	lastTime = 0;
 }
 
 

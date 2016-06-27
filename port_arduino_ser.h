@@ -4,13 +4,17 @@ class __SerNo : public port_t {
 		__TheSerial.begin( baud );
 	}
 	bool clearToSend() const {
-		return __TheSerial.availableForWrite();
+		#ifdef ENERGIA
+			return true; // This may cause blocking
+		#else
+			return __TheSerial.availableForWrite();
+		#endif
 	}
 	void send( char ch ) const {
 		__TheSerial.write( ch );
 	}
 	bool dataAvailable() const {
-		__TheSerial.available();
+		return __TheSerial.available();
 	}
 	short_t receive() const {
 		return (short_t)__TheSerial.read();

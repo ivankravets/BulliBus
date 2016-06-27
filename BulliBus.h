@@ -20,6 +20,7 @@
 	#pragma message "ENERGIA"
 	#include "Arduino.h"
 	#define BB_HAS_SERIAL0
+	#define BB_HAS_SERIAL1
 	#define BB_CRC_PLAIN
 	#define BB_32bit
 #else
@@ -108,7 +109,7 @@ class Bulli {
 
 private:
 	const port_t &port;
-	const Driver *driver;
+	Driver *driver;
 	Passenger *passenger;
 
 public:
@@ -148,6 +149,7 @@ class Driver {
 		bb_callback_t callback;
 		bb_addr_t lastCall;
 		uint32_t lastTime;
+		void ack();
 
 	public:
 		Driver( Bulli &bus );
