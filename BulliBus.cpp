@@ -2,10 +2,11 @@
 
 #include <string.h>
 
-#define DEFAULT_BUFFER_SIZE 24
-#define DEFAULT_TIMEOUT 20
-
 #define BB_WILDCARD '?'
+#define _REQ_ ' '
+#define _RESP_ '>'
+#define _CRC_ '~'
+#define _NL_ '\n'
 
 inline
 char_t _i2c( char_t val ) {
@@ -38,17 +39,17 @@ static ushort_t _decodeCrc( const char * crc ) {
 	return result;
 }
 
-static bool _matchAddress( const char * mine, const char * msg ) {
+static bool _matchMineAddressTo( bb_addr_t mine, bb_addr_t other ) {
 
-	register char_t i, m1, m2;
+	register char_t i, m, o;
 
 	for( i=0; i<4; i++ ) {
 
-		m1 = mine[ i ];
-		if( m1 == BB_WILDCARD ) continue;
-		m2 = msg[ i ];
-		if( m2 == BB_WILDCARD ) continue;
-		if( m1 != m2 ) return false;
+		m = mine[ i ];
+		if( m == BB_WILDCARD ) continue;
+		o = other[ i ];
+		if( o == BB_WILDCARD ) continue;
+		if( m != o ) return false;
 	}
 	return true;
 }
@@ -99,12 +100,47 @@ void BulliBus::onError( void (*cb_error)( const char *, Cargo& ) ) {
 	_cb_error = cb_error;
 }
 
+BulliBus::Args::Args( Cargo &cargo ) {
+
+	if( cargo.payload == NULL ) {
+		argv[ 0 ] = 0;
+		argc = 0;
+		return;
+	}
+
+	register char_t c = 0;
+	register char * p = cargo.payload;
+
+	bool in = false;
+
+	while( true ) {
+
+		while( *p == ' ' ) p++; // skip spaces
+
+		if( *p == '"' ){ in=true; p++; };
+
+		if( *p == '\0' ) break; // this skips " as last char, too. ok.
+
+		argv[ c++ ] = p;
+
+		while( (in || *p != ' ') && *p != '\0' && *p != '"' ) p++; // skip text
+
+		if( *p == '\0' ) break;
+
+		*p++ = '\0';
+
+		if( c == BB_MAX_ARGS ) break;
+	}
+
+	argc = c;
+}
+
 // === Cargo ===
 
-Cargo::Cargo( Bulli &bus, bb_addr_t address, const char *argv ) 
+Cargo::Cargo( Bulli &bus, bb_addr_t address, char *payload ) 
  : bus( bus ) {
 	this->address = address;
-	this->argv = argv;
+	this->payload = payload;
 }
 void Cargo::reply( const char *msg ) {
 	bus.send( address, msg, true );
@@ -151,11 +187,11 @@ void Bulli::send( bb_addr_t addr, const char *msg, bool isreply ) {
 	}
 
 	if( isreply ) {
-		out.put( '>' );
-		crc = crc_update( crc, '>' );
+		out.put( _RESP_ );
+		crc = crc_update( crc, _RESP_ );
 	} else {
-		out.put( ' ' );
-		crc = crc_update( crc, ' ' );
+		out.put( _REQ_ );
+		crc = crc_update( crc, _REQ_ );
 	}
 
 	for( i=0; i<len; i++ ) {
@@ -166,11 +202,11 @@ void Bulli::send( bb_addr_t addr, const char *msg, bool isreply ) {
 		out.put( ch );
 	}
 
-	out.put( '~' );
+	out.put( _CRC_ );
 
 	_putCrc( out, crc );
 
-	out.put( '\n' );
+	out.put( _NL_ );
 
 	out.flip();
 	
@@ -198,7 +234,7 @@ void Bulli::_trySend() {
 	}
 }
 
-const char *  __findCrc( char * msg, int len ) {
+char *  __findCrc( char * msg, int len ) {
 
 	char *res = NULL;
 
@@ -206,7 +242,7 @@ const char *  __findCrc( char * msg, int len ) {
 
 		char * ind = msg + len-1-4;
 
-		if( *ind == '~' ) {
+		if( *ind == _CRC_ ) {
 
 			*ind = '\0';
 			res = ind+1;
@@ -221,11 +257,13 @@ bb_addr_t __findAddress( char * msg, int len ) {
 	return msg;
 }
 
-const char * __findPayload( char * msg, int len ) {
+char * __findPayload( char * msg, int len ) {
+
+	if( len < 6 ) return NULL;
 
 	char * result = &( msg[ 5 ] );
 
-	while( *result == ' ' ) result++;
+	while( *result == ' ' ) result++; // strip leading whitespace
 
 	return result;
 }
@@ -234,7 +272,7 @@ void Bulli::_processIn( Buffer buffer ) {
 
 	// note: this makes a copy of the buffer.
 	// It may be possible to write this without a copy.
-	char buf[ DEFAULT_BUFFER_SIZE+1 ]; // don't forget NUL
+	char buf[ BB_BUFFER_SIZE+1 ]; // don't forget NUL
 
 	buffer.flip();
 
@@ -243,15 +281,14 @@ void Bulli::_processIn( Buffer buffer ) {
 	buffer.clear();
 	// from this point we can start receiving again
 	
-	if( len > 5 ) {
+	if( len > 3 ) {
 
-		char type = buf[ 4 ];
+		char type = len > 4 ? buf[ 4 ] : _REQ_;
 
-		if( type == ' ' || type == '>' ) {
+		if( type == _REQ_ || type == _RESP_ ) {
 
 			bb_addr_t addr = __findAddress( buf, len );
-			const char * payload = __findPayload( buf, len );
-			Cargo cargo( *this, addr, payload );
+			char * payload = __findPayload( buf, len );
 			const char * crc = __findCrc( buf, len );
 			bool crcErr = false;
 
@@ -274,9 +311,11 @@ void Bulli::_processIn( Buffer buffer ) {
 				crcErr = calculatedCrc != receivedCrc;
 			}
 
-			if( crcErr && _cb_error ) {
+			Cargo cargo( *this, addr, payload );
 
-				_cb_error( "CRC", cargo );
+			if( crcErr ) {
+				if( _cb_error ) _cb_error( "CRC", cargo );
+				return;
 			}
 
 			// request
@@ -285,12 +324,7 @@ void Bulli::_processIn( Buffer buffer ) {
 				Passenger *p = passenger;
 				for( ; p != NULL; p = p->next ) {
 
-					if( _matchAddress( p->address, addr ) ) {
-
-						if( crcErr ) {
-							cargo.reply( "CRC ERR" );
-							return;
-						}
+					if( _matchMineAddressTo( p->address, addr ) ) {
 
 						if( p->callback != NULL )
 								p->callback( cargo ); 
@@ -298,9 +332,9 @@ void Bulli::_processIn( Buffer buffer ) {
 				}
 	
 			// response
-			} else if( type == '>' ) { //reponse
+			} else if( type == _RESP_ ) { //reponse
 
-				if( driver && _matchAddress( driver->lastCall, addr ) ) {
+				if( driver && _matchMineAddressTo( driver->lastCall, addr ) ) {
 				
 					if( driver->lastCall ) {
 
@@ -325,9 +359,9 @@ void Bulli::_tryReceive() {
 
 		short_t ch = port.receive();
 
-		if( ch == '\r' ) ch = '\n'; // treat \r and \n the same
+		if( ch == '\r' ) ch = _NL_; // treat \r and \n the same
 
-		if( ch == '\n' ) {
+		if( ch == _NL_ ) {
 
 			_processIn( in );
 			in.clear();
@@ -354,7 +388,7 @@ Driver::Driver( Bulli &bus )
 	lastTime = 0;
 }
 
-void Driver::send( bb_addr_t address, const char *message ) const {
+void Driver::tell( bb_addr_t address, const char *message ) const {
 
 	bus.send( address, message, false );
 }
@@ -363,9 +397,9 @@ void Driver::request( bb_addr_t address, const char *message, bb_callback_t cb )
 
 	unsigned long now = millis(),
 	              timeout = now-lastTime;
-	long delay = DEFAULT_TIMEOUT - timeout;
+	long delay = BB_TIMEOUT - timeout;
 
-	while( lastTime > 0 && (DEFAULT_TIMEOUT-(millis()-lastTime)) > 0 )
+	while( lastTime > 0 && (BB_TIMEOUT-(millis()-lastTime)) > 0 )
 			bus.run();
 	/*
 	if( lastTime > 0 && delay > 0 )
@@ -376,7 +410,7 @@ void Driver::request( bb_addr_t address, const char *message, bb_callback_t cb )
 	this->callback = cb;
 	this->lastCall = address;
 
-	send( address, message );
+	tell( address, message );
 
 	lastTime = millis();
 }

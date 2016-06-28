@@ -1,7 +1,7 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-#define DEFAULT_BUFFER_SIZE 24
+#include "settings.h"
 
 class Buffer {
 
@@ -30,7 +30,7 @@ public:
 	Buffer& operator<<( Buffer &rhs );
 
 private:
-	char buffer[ DEFAULT_BUFFER_SIZE ];
+	char buffer[ BB_BUFFER_SIZE ];
 
 };
 

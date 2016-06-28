@@ -16,7 +16,7 @@ Driver driver( bus );
 void onTmp1( Cargo &cargo ) {
 
 	Serial.print( "Got temp1: " );
-	Serial.println( cargo.argv );
+	Serial.println( cargo.payload );
 
 	digitalWrite( RED, false );
 }
@@ -24,7 +24,7 @@ void onTmp1( Cargo &cargo ) {
 void onTmp2( Cargo &cargo ) {
 
 	Serial.print( "Got temp2: " );
-	Serial.println( cargo.argv );
+	Serial.println( cargo.payload );
 
 	digitalWrite( GRN, false );
 }
@@ -32,7 +32,7 @@ void onTmp2( Cargo &cargo ) {
 void onTmp3( Cargo &cargo ) {
 
 	Serial.print( "Got temp3: " );
-	Serial.println( cargo.argv );
+	Serial.println( cargo.payload );
 
 	digitalWrite( BLU, false );
 }

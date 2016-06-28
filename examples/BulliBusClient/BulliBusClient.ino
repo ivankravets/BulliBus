@@ -16,12 +16,14 @@ volatile float temp = 12.34;
 
 void handleTemp( Cargo &cargo ) {
 
+	// dont care about message
+
 	cargo.reply( temp );
 }
 
 void handleIndicator( Cargo &cargo ) {
 
-	String value( cargo.argv );
+	String message( cargo.payload );
 
 	if( value == "on" ) digitalWrite( LED, true );
 	else if( value == "off" ) digitalWrite( LED, false );
@@ -30,15 +32,15 @@ void handleIndicator( Cargo &cargo ) {
 
 void setup() {
 
-	Serial.begin( 19200 );
-
 	pinMode( LED, OUTPUT );
-
-	// Not that only *some* baud rates are available on 8MHz AVR
-	bus.begin( 19200 );
+	digitalWrite( LED, true );
 
 	sensor.onCargo( handleTemp );
 	indicator.onCargo( handleIndicator );
+	
+	// Not that only *some* baud rates are available on 8MHz AVR
+	bus.begin( 19200 );
+
 }
 
 void loop() {

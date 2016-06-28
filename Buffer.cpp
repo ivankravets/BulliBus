@@ -4,7 +4,7 @@
 //#include <iostream>
 
 Buffer::Buffer()
- : CAPACITY( DEFAULT_BUFFER_SIZE ) {
+ : CAPACITY( BB_BUFFER_SIZE ) {
 
 	clear();
 }
