@@ -1,6 +1,7 @@
 # BulliBus
 
-=== NOT READY, YET! ===
+=== JUST NOT READY, YET! ===
+(but let's call it *beta*)
 
 Simple serial communication library for Arduino and Friends
 
