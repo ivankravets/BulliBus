@@ -10,28 +10,35 @@
 
 Bulli bus( SER0 );
 Passenger sensor( bus, "tmp1" );
-
+Passenger indicator( bus, "ind1" );
 
 volatile float temp = 12.34;
 
-void handleCargo( Cargo &cargo ) {
-
-	static bool on;
-	on = !on;
-
-	digitalWrite( LED, on );
+void handleTemp( Cargo &cargo ) {
 
 	cargo.reply( temp );
 }
 
+void handleIndicator( Cargo &cargo ) {
+
+	String value( cargo.argv );
+
+	if( value == "on" ) digitalWrite( LED, true );
+	else if( value == "off" ) digitalWrite( LED, false );
+	else if( value == "tog" ) digitalWrite( LED, !digitalRead( LED ) );
+}
+
 void setup() {
+
+	Serial.begin( 19200 );
 
 	pinMode( LED, OUTPUT );
 
 	// Not that only *some* baud rates are available on 8MHz AVR
 	bus.begin( 19200 );
 
-	sensor.onCargo( handleCargo );
+	sensor.onCargo( handleTemp );
+	indicator.onCargo( handleIndicator );
 }
 
 void loop() {

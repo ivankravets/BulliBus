@@ -282,7 +282,8 @@ void Bulli::_processIn( Buffer buffer ) {
 			// request
 			if( type == ' ' ) {
 
-				for( Passenger *p=passenger; p != NULL; p = p->next ) {
+				Passenger *p = passenger;
+				for( ; p != NULL; p = p->next ) {
 
 					if( _matchAddress( p->address, addr ) ) {
 
@@ -364,16 +365,6 @@ void Driver::request( bb_addr_t address, const char *message, bb_callback_t cb )
 	              timeout = now-lastTime;
 	long delay = DEFAULT_TIMEOUT - timeout;
 
-	Serial.print( "last: " );
-	Serial.print( lastTime );
-	Serial.print( ", now: " );
-	Serial.print( now );
-	Serial.print( ", timeout: " );
-	Serial.print( timeout );
-	Serial.print( ", delay: " );
-	Serial.print( delay );
-	Serial.println();
-
 	while( lastTime > 0 && (DEFAULT_TIMEOUT-(millis()-lastTime)) > 0 )
 			bus.run();
 	/*
@@ -402,7 +393,7 @@ Passenger::Passenger( Bulli &bus, bb_addr_t address )
  	this->address = address;
 
 	if( bus.passenger ) {
-		this->next = bus.passenger->next;
+		this->next = bus.passenger;
 	} else {
 		this->next = NULL;
 	}
