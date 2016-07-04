@@ -23,6 +23,10 @@ BulliBus uses only plain old printable ASCII characters to communicate.
 BulliBus Master (just called Bulli) can be easily simulated using an ascii
 terminal on your PC using some cheapo rs485 adaptor.
 
+BulliBus can even be run without transceivers at all. (But if you want to
+have more than one Client on the line there is some Arduino Core library
+tweeking required.)
+
 BulliBus can theoretically talk to millions of clients but for all practical
 purposes the amount of client will be around 10.
 
@@ -78,8 +82,9 @@ with:
           If supplied devices *must* check it and return an error if not matches
 
 For broadcasts masking may be used:
-    questionmarks can replace *any* address character and mean: can be any character. so
-        tmp? does mean any device in ranges tmp0..tmp9, tmpa..tmpz, tmpA..tmpZ, ... and so on.
+    questionmarks can replace *any* address character and mean: can be any character.
+		so tmp? does mean any device in ranges tmp0..tmp9, tmpa..tmpz, tmpA..tmpZ,
+		... and so on.
 
 BulliBus's code model solely depends on callbacks.
 
@@ -95,9 +100,11 @@ So this protocoll has some drawbacks:
 
 But it has some major advantages, too:
  * It just works
- * It can be implemented on nearly any device as long as it has a serial interface
+ * It can be implemented on nearly any device as long as it has a serial
+   interface
  * It is bus capable and avoids collisions
- * It is dead simple. You can even communicate with your clients using just a simple terminal
+ * It is dead simple. You can even communicate with your clients using just
+   a simple terminal
  * It can be implemented in just a few LOCs
 
 ***Don't use this* if you:***
@@ -109,3 +116,39 @@ But use it if you:
  * Just want to send messages between a few devices
  * Want to be able to read what your devices are talking
  * Are fed up searching for a bus protocol which runs on all your devices
+
+
+= Bus timing =
+
+BulliBus depends on the well behaviour of its participants. In order to allow
+a wide variety of implementations (even slow ones) and keeping them simple the
+requirements are quiet lax.
+
+General Timing:
+
+ 1 Master sends request string:           - no Limit
+ 2 waiting for Client to response         - 20ms
+ 3 Client sends response                  - 5ms
+ 4 In between character time              - 5ms
+ 5 Time until Master sends next request   - emediately
+
+If you are using rs485 DE feature there are some more delays:
+
+ 0.5 Master enables DE
+ 1.5 Time until master releases DE        - 5ms
+ 2.5 Client enables DE
+ 4.5 Time until client releases DE        - 5ms
+
+If no response from client is expected the master can emediately continue
+sending after 1.5
+
+ISSUES:
+ * Timings are not implemented yet
+ * The implementations uses more buffers than may be required
+ * More patchy
+ * Standard arduino Serial doesn't allow us to use interrupts but they
+   would make living much more easy. Reimplement serial or say it's
+   feature?
+ * Not having to use DE feature would simplify timing and make general
+   implementation more easy and bus faster. This can be done by x-linking
+   TTL directly or by e.g. using a CAN transceiver or I²C driver.
