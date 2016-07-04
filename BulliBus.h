@@ -143,9 +143,11 @@ class Cargo {
 		Bulli &bus;
 
 		Cargo( Bulli &bus, bb_addr_t address, char *payload );
+		Cargo( Bulli &bus, bb_addr_t address );
 
 	public:
 
+		bool ok;
 		bb_addr_t address;
 		char *payload;
 
@@ -242,8 +244,8 @@ class Driver {
 		Bulli &bus;
 		bb_callback_t callback;
 		bb_addr_t lastCall;
-		uint32_t lastTime;
-		void ack();
+		uint32_t reservedUntil;
+		void reserve( int millis );
 
 	public:
 		Driver( Bulli &bus );

@@ -5,7 +5,7 @@ class __SerNo : public port_t {
 	}
 	bool clearToSend() const {
 		#ifdef ENERGIA
-			return true; // This may cause blocking
+			return true; // This will cause blocking
 		#else
 			return __TheSerial.availableForWrite();
 		#endif

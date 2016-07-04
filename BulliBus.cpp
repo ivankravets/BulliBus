@@ -141,8 +141,15 @@ BulliBus::Args::Args( Cargo &cargo ) {
 
 Cargo::Cargo( Bulli &bus, bb_addr_t address, char *payload ) 
  : bus( bus ) {
+ 	this->ok = true;
 	this->address = address;
 	this->payload = payload;
+}
+Cargo::Cargo( Bulli &bus, bb_addr_t address )
+ : bus( bus ) {
+	this->ok = false;
+	this->address = address;
+	this->payload = NULL;
 }
 void Cargo::reply( const char *msg ) {
 	bus.send( address, msg, true );
@@ -372,7 +379,7 @@ void Bulli::_processIn( Buffer buffer ) {
 					if( driver->lastCall ) {
 
 						driver->callback( cargo );
-						driver->ack();
+						driver->reserve( 0 );
 					}
 				}
 
@@ -418,7 +425,7 @@ Driver::Driver( Bulli &bus )
  : bus( bus ) {
 
 	bus.driver = this;
-	lastTime = 0;
+	reserve( 0 );
 }
 
 void Driver::tell( bb_addr_t address, const char *message ) const {
@@ -428,16 +435,8 @@ void Driver::tell( bb_addr_t address, const char *message ) const {
 
 void Driver::request( bb_addr_t address, const char *message, bb_callback_t cb ) {
 
-	unsigned long now = millis(),
-	              timeout = now-lastTime;
-	long delay = BB_TIMEOUT - timeout;
-
-	while( lastTime > 0 && (BB_TIMEOUT-(millis()-lastTime)) > 0 )
-			bus.run();
-	/*
-	if( lastTime > 0 && delay > 0 )
-			bus.delay( delay );
-			*/
+	// wait until reservation gets freed.
+	while( millis() < reservedUntil ) bus.run();
 
 	// after timeout reached
 	this->callback = cb;
@@ -445,10 +444,12 @@ void Driver::request( bb_addr_t address, const char *message, bb_callback_t cb )
 
 	tell( address, message );
 
-	lastTime = millis();
+	reserve( BB_TIMEOUT );
 }
-void Driver::ack() {
-	lastTime = 0;
+
+void Driver::reserve( int ms ) {
+
+	reservedUntil = millis() + ms;
 }
 
 

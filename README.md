@@ -152,3 +152,4 @@ ISSUES:
  * Not having to use DE feature would simplify timing and make general
    implementation more easy and bus faster. This can be done by x-linking
    TTL directly or by e.g. using a CAN transceiver or I²C driver.
+ * Error handling if no response arrives -> calling callback with empty cargo?
