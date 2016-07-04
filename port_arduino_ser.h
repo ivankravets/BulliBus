@@ -13,6 +13,9 @@ class __SerNo : public port_t {
 	void send( char ch ) const {
 		__TheSerial.write( ch );
 	}
+	void flush() const {
+		__TheSerial.flush();
+	}
 	bool dataAvailable() const {
 		return __TheSerial.available();
 	}

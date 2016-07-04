@@ -57,6 +57,8 @@
 #define ADDR( c ) \
 	((c)[0]<<24 | (c)[1]<<16 | (c)[2]<<8 | (c)[3])
 
+#define BB_NOPIN 9999
+
 #include "settings.h"
 
 class Bulli;
@@ -73,6 +75,7 @@ class port_t {
 	virtual bool clearToSend() const = 0;
 	virtual void send( char ch ) const = 0;
 	virtual bool dataAvailable() const = 0;
+	virtual void flush() const = 0;
 	virtual short_t receive() const = 0;
 };
 
@@ -181,10 +184,11 @@ private:
 	const port_t &port;
 	Driver *driver;
 	Passenger *passenger;
+	int txen_pin;
 
 public:
 
-	Bulli( const port_t &port );
+	Bulli( const port_t &port, int txen_pin = BB_NOPIN );
 
 	void begin( uint32_t speed );
 
@@ -199,13 +203,18 @@ public:
 
 private:
 
+	void _txen( bool );
+
 	void _tryReceive();
 	void _trySend();
+
 	void _processIn( Buffer buffer );
+
 	void send( bb_addr_t addr, const char *msg, bool isreply );
 
 	Buffer in;
 	Buffer out;
+
 };
 
 

@@ -10,7 +10,7 @@ but when there is nothing more to take away."
                                                     (Antoine de Saint Exupéry)
 
 TLDR: Just look in the examples folder.
-      Some more docs can be found in the header file.
+      Some more witty docs can be found in the header file: BulliBus.h
 
 The purpose of this project is to provide an extremely simple to use but
 nevertheless powerfull serial bus communiction library for Arduino and

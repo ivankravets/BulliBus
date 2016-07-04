@@ -93,6 +93,7 @@ static bool _matchMineAddressTo( bb_addr_t mine, bb_addr_t other ) {
 
 // === BulliBus ===
 
+// Error callback
 static void (* _cb_error)( const char *, Cargo& );
 
 void BulliBus::onError( void (*cb_error)( const char *, Cargo& ) ) {
@@ -100,6 +101,7 @@ void BulliBus::onError( void (*cb_error)( const char *, Cargo& ) ) {
 	_cb_error = cb_error;
 }
 
+// Args helper
 BulliBus::Args::Args( Cargo &cargo ) {
 
 	if( cargo.payload == NULL ) {
@@ -157,16 +159,36 @@ template void Cargo::reply<long>( long value );
 template void Cargo::reply<float>( float value );
 template void Cargo::reply<double>( double value );
 
+void Bulli::_txen( bool en ) {
+
+	if( txen_pin != BB_NOPIN ) {
+		if( txen_pin < 0 ) { 
+			digitalWrite( -txen_pin, !en );
+		} else {
+			digitalWrite( txen_pin, en );
+		}
+	}
+}
+
+
 // === Bulli ===
-Bulli::Bulli( const port_t &port ) : 
-		port( port )
-{
+Bulli::Bulli( const port_t &port, int txen_pin ) : 
+		port( port ) {
+
+	this->txen_pin = txen_pin;
 	this->passenger = NULL;
 	this->driver = NULL;
 }
 
 void Bulli::begin( uint32_t baud ) {
+
 	port.init( baud );
+
+	if( txen_pin != BB_NOPIN ) {
+		_txen( false );
+		pinMode( txen_pin < 0 ? -txen_pin : txen_pin, OUTPUT );
+	}
+
 }
 
 void Bulli::send( bb_addr_t addr, const char *msg, bool isreply ) {
@@ -214,7 +236,7 @@ void Bulli::send( bb_addr_t addr, const char *msg, bool isreply ) {
 }
 
 void Bulli::run() {
-	_trySend();
+	//_trySend();
 	_tryReceive();
 }
 
@@ -228,10 +250,21 @@ void Bulli::delay( uint32_t ms ) {
 
 void Bulli::_trySend() {
 
+	_txen( true );
+
+	while( out.remaining() > 0 ) {
+		port.send( out.next() );
+	}
+	port.flush(); //wait for sending complete
+
+	_txen( false );
+
+	/*
 	while( port.clearToSend() && out.remaining() > 0 ) {
 
 		port.send( out.next() );
 	}
+	*/
 }
 
 char *  __findCrc( char * msg, int len ) {
