@@ -4,13 +4,13 @@
 	"description": "Easy to use serial communication library using UART",
 	"authors": {
 		"name": "Florian Bantner",
-		"url": "http://www.github.com/ScheintodX"
+		"url": "https://www.github.com/ScheintodX"
 	},
 	"repository": {
 		"type": "git",
-		"url": "http://www.github.com/ScheintodX/BulliBus"
+		"url": "https://github.com/ScheintodX/BulliBus.git"
 	},
 	"version": "0.0.1",
 	"frameworks": "arduino",
-	"platforms": "atmelavr, esp8266"
+	"platforms": "atmelavr, espressif, energia"
 }
