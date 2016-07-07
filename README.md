@@ -128,8 +128,7 @@ General Timing:
 
  1 Master sends request string:           - no Limit
  2 waiting for Client to response         - 20ms
- 3 Client sends response                  - 5ms
- 4 In between character time              - 5ms
+ 4 In between character time              - 20ms
  5 Time until Master sends next request   - emediately
 
 If you are using rs485 DE feature there are some more delays:

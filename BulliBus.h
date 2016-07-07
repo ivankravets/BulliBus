@@ -246,6 +246,7 @@ class Driver {
 		bb_addr_t lastCall;
 		uint32_t reservedUntil;
 		void reserve( int millis );
+		void release();
 
 	public:
 		Driver( Bulli &bus );

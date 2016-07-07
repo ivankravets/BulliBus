@@ -1,0 +1,16 @@
+{
+	"name": "BulliBus",
+	"keywords": "serial, bus, rs485, rs232, communication, uart, usart",
+	"description": "Easy to use serial communication library using UART",
+	"authors": {
+		"name": "Florian Bantner",
+		"url": "http://www.github.com/ScheintodX"
+	},
+	"repository": {
+		"type": "git",
+		"url": "http://www.github.com/ScheintodX/BulliBus"
+	},
+	"version": "0.0.1",
+	"frameworks": "arduino",
+	"platforms": "atmelavr, esp8266"
+}

@@ -243,8 +243,18 @@ void Bulli::send( bb_addr_t addr, const char *msg, bool isreply ) {
 }
 
 void Bulli::run() {
-	//_trySend();
+
+	//_trySend(); // not needed because we block sending
 	_tryReceive();
+
+	//Serial.print( "." );
+	// notify driver of failed request
+	if( driver && driver->lastCall && driver->reservedUntil < millis() ) {
+		Cargo cargo = Cargo( *this, driver->lastCall );
+		driver->callback( cargo );
+		Serial.println( "err" );
+		driver->release();
+	}
 }
 
 void Bulli::delay( uint32_t ms ) {
@@ -374,13 +384,12 @@ void Bulli::_processIn( Buffer buffer ) {
 			// response
 			} else if( type == _RESP_ ) { //reponse
 
-				if( driver && _matchMineAddressTo( driver->lastCall, addr ) ) {
+				if( driver && driver->lastCall && _matchMineAddressTo( driver->lastCall, addr ) ) {
 				
-					if( driver->lastCall ) {
 
-						driver->callback( cargo );
-						driver->reserve( 0 );
-					}
+					driver->callback( cargo );
+					driver->release();
+					Serial.println( "ok" );
 				}
 
 			}
@@ -398,6 +407,8 @@ void Bulli::_tryReceive() {
 	while( port.dataAvailable() && in.remaining() > 0 ) {
 
 		short_t ch = port.receive();
+
+		if( driver ) driver->reserve( BB_TIMEOUT );
 
 		if( ch == '\r' ) ch = _NL_; // treat \r and \n the same
 
@@ -425,6 +436,8 @@ Driver::Driver( Bulli &bus )
  : bus( bus ) {
 
 	bus.driver = this;
+	//release();
+	lastCall = NULL;
 	reserve( 0 );
 }
 
@@ -450,6 +463,12 @@ void Driver::request( bb_addr_t address, const char *message, bb_callback_t cb )
 void Driver::reserve( int ms ) {
 
 	reservedUntil = millis() + ms;
+}
+
+void Driver::release() {
+	lastCall = NULL;
+	reserve( 0 );
+	Serial.println( "release" );
 }
 
 
